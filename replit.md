@@ -8,7 +8,7 @@ A professional full-stack web application for selling Telegram groups safely and
 
 - **Frontend**: React + TypeScript + Tailwind CSS + Shadcn UI
 - **Backend**: Node.js + Express
-- **Storage**: In-memory storage (MemStorage) with plans for PostgreSQL
+- **Database**: PostgreSQL (with in-memory storage fallback)
 - **Authentication**: JWT tokens with bcrypt password hashing
 - **State Management**: TanStack React Query
 - **Routing**: Wouter
@@ -61,11 +61,18 @@ A professional full-stack web application for selling Telegram groups safely and
 - **Earnings**: View balance, earnings history, request withdrawals
 - **Support**: Access help resources and FAQs
 
-### Admin Features
-- **Admin Panel**: Manage all groups and withdrawal requests
-- **Approval System**: Approve/reject groups with reason notes
-- **Withdrawal Processing**: Approve/reject withdrawal requests
-- **Statistics Dashboard**: Track platform metrics (users, groups, earnings, pending reviews)
+### Admin Features (Enhanced)
+- **Comprehensive Admin Dashboard**: 5-tab interface for complete platform management
+  - **Groups Tab**: Review submissions with ownership tracking, type badges, and detailed metadata
+  - **Users Tab**: Full user management - view all users, edit balances, toggle admin roles, delete accounts
+  - **Withdrawals Tab**: Process withdrawal requests with approval/rejection workflow
+  - **Pricing Tab**: Dynamic price configuration - edit prices based on group age and member count
+  - **Settings Tab**: Platform configuration including Telegram API credentials (API ID/Hash management)
+- **Dynamic Pricing System**: Admin-editable price list with automatic fallback to default prices
+- **User Data Tracking**: Complete user analytics with balance management and role assignment
+- **Group Link Tracking**: Monitor all group submissions with ownership transfer detection
+- **API Configuration**: Secure storage of Telegram API credentials and platform settings
+- **Account Validation**: Comprehensive validation and security measures
 
 ## Data Models
 
@@ -84,6 +91,14 @@ A professional full-stack web application for selling Telegram groups safely and
 
 ### Transactions
 - id, userId, groupId, withdrawalId, type (earning/withdrawal), amount, status, createdAt
+
+### Admin Settings (New)
+- id, settingKey, settingValue, description, updatedAt
+- Used for storing Telegram API credentials and platform configuration
+
+### Price Configuration (New)
+- id, groupAge, memberRange, price, updatedAt
+- Dynamic pricing table - admin-editable prices for different group categories
 
 ## API Endpoints
 
@@ -104,10 +119,30 @@ A professional full-stack web application for selling Telegram groups safely and
 - `GET /api/withdrawals/stats` - Get withdrawal statistics
 
 ### Admin (requires admin role)
+**Groups Management:**
 - `GET /api/admin/groups` - Get all groups
 - `PATCH /api/admin/groups/:id` - Update group status
+
+**Withdrawals Management:**
 - `GET /api/admin/withdrawals` - Get all withdrawal requests
 - `PATCH /api/admin/withdrawals/:id` - Update withdrawal status
+
+**Users Management (New):**
+- `GET /api/admin/users` - Get all users (without passwords)
+- `PATCH /api/admin/users/:id` - Update user (admin status, balance)
+- `DELETE /api/admin/users/:id` - Delete user account
+
+**Price Configuration (New):**
+- `GET /api/admin/prices` - Get all price configurations
+- `PATCH /api/admin/prices/:id` - Update price for specific category
+
+**Settings Management (New):**
+- `GET /api/admin/settings` - Get all platform settings
+- `POST /api/admin/settings` - Create or update a setting
+- `PATCH /api/admin/settings/:key` - Update setting value
+- `DELETE /api/admin/settings/:key` - Delete a setting
+
+**Statistics:**
 - `GET /api/admin/stats` - Get platform statistics
 
 ## Authentication Flow
@@ -142,12 +177,28 @@ The application runs on a single port with Vite dev server for frontend and Expr
 npm run dev
 ```
 
+## Recent Updates (October 2025)
+
+### Enhanced Admin Panel
+- ✅ Complete user management system with balance editing and role assignment
+- ✅ Dynamic price configuration with admin-editable pricing table
+- ✅ Platform settings management for API credentials (Telegram API ID/Hash)
+- ✅ Enhanced group tracking with ownership monitoring
+- ✅ PostgreSQL database integration with Drizzle ORM
+- ✅ Comprehensive 5-tab admin dashboard interface
+
+### Pricing System
+- Dynamic pricing with fallback to static prices
+- Admin can edit prices for any group age/member range combination
+- Automatic price calculation based on configuration
+- Safe fallback to default prices if config is missing
+
 ## Future Enhancements
 
-- PostgreSQL database integration
 - Telegram Bot API for automated verification
 - Real-time WebSocket updates
 - Email notifications
 - Payment gateway integration
-- Enhanced analytics dashboard
+- Enhanced analytics dashboard with charts
 - File upload for screenshots
+- Bulk operations for admin (approve multiple groups at once)
