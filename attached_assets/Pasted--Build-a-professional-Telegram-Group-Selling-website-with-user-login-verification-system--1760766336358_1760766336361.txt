@@ -1,0 +1,389 @@
+
+
+> Build a **professional Telegram Group Selling website** with user login, verification system, admin panel, and order tracking.
+
+---
+
+### 🔧 1. Tech Stack
+
+* **Frontend:** React + Tailwind CSS (clean modern UI)
+* **Backend:** Node.js (Express.js)
+* **Database:** MongoDB (user, group, order, transaction data)
+* **Authentication:** Telegram login (via Telegram API)
+* **Hosting:** Render (backend) + Replit (dev environment)
+* **Telegram API integration:** For verifying group ownership and age.
+
+---
+
+### 💻 2. User Flow
+
+#### **Login / Register Page**
+
+* User can **login with Telegram username and password** (simulate with local login or Telegram OAuth).
+* If user forgets password → redirects to **Support page** (manual recovery by admin).
+* On successful login → redirect to Dashboard.
+
+#### **Dashboard**
+
+Main buttons:
+
+* **Sell Your Group** (main action)
+* **Earnings**
+* **Support / Profile**
+
+---
+
+### 🏷️ 3. Sell Your Group Section
+
+When user clicks **Sell Your Group**, show:
+
+* Option:
+
+  * “Single Group”
+  * “Folder of Groups”
+
+When selected → user enters:
+
+* **Group Link**
+* **Group Description**
+* **Number of Members**
+* **Optional Screenshot Upload**
+* Then click **Submit for Verification**
+
+#### ⚙️ Verification Process:
+
+* Website uses **connected Telegram account (admin’s bot or API)** to:
+
+  1. Check **group creation date / age**
+  2. Confirm **bot is admin** or user is real owner
+  3. If verified → Status = “✅ Verified — Waiting for Ownership”
+  4. If failed → Status = “❌ Verification Failed” with reason
+
+#### After ownership transfer:
+
+* Automatically move to **“Waiting for Review”**
+* Admin can then approve or reject manually.
+
+---
+
+### 📊 4. Task List / Price List Section
+
+Below verification section:
+
+* **Task List**: shows steps (Submitted → Verified → Ownership → Review → Paid)
+* **Price List Table:**
+
+  | Group Age | Member Range | Price (USD) |
+  | --------- | ------------ | ----------- |
+  | 2020–2021 | 0–1000       | $3          |
+  | 2022–2023 | 0–1000       | $2          |
+  | etc.      |              |             |
+
+---
+
+### 🧑‍💼 5. Admin Panel Features
+
+**Login (admin only)**
+Dashboard includes:
+
+* List of all sellers and groups
+* Columns:
+
+  * Username
+  * Group Link
+  * Status (Pending, Verified, Ownership, Review, Paid, Rejected)
+  * Earning
+  * Withdrawal Requests
+  * Actions: ✅ Approve / ❌ Reject
+  * Text box: “Reason for rejection”
+
+**Admin Functions:**
+
+* Approve or reject groups
+* Update group prices
+* Manual user support (password reset)
+* View statistics: total groups, total users, total earnings, pending reviews
+* Manual payout control
+
+---
+
+### 📱 6. Telegram Integration Details
+
+**Bot Connected via API Token**
+
+* Bot verifies group info using Telegram API:
+
+  * `getChat()` to fetch creation date (via message history)
+  * `getChatAdministrators()` to confirm ownership
+  * Send confirmation messages in group/chat like:
+    “Verification in progress…” → “Verified successfully ✅”
+
+---
+
+### 💰 7. Earnings & Withdrawal System
+
+Each verified group → adds balance to user wallet.
+User can:
+
+* View total earnings
+* Request withdrawal (admin must manually approve)
+* Withdraw methods: manual (UPI, crypto, etc.)
+
+---
+
+### 🧱 8. Database Collections
+
+**Users:**
+
+```js
+{ username, telegramId, password, balance, groups: [], withdrawals: [] }
+```
+
+**Groups:**
+
+```js
+{ link, ownerId, members, creationDate, status, price, reason }
+```
+
+**Transactions:**
+
+```js
+{ userId, groupId, amount, status, date }
+```
+
+---
+
+### 🎨 9. Design Instructions
+
+* Dashboard in dark/light theme toggle
+* Card layout for group listings
+* Progress bar for verification stages
+* Notification popup for each update (success/error)
+* Navbar: Home | Sell Group | My Earnings | Support
+
+---
+
+### 🧰 10. Developer Instructions
+
+* Use **Express Router** for API endpoints:
+
+  * `/api/auth`
+  * `/api/groups`
+  * `/api/admin`
+  * `/api/telegram`
+* Secure routes with JWT tokens.
+* Use `.env` file for tokens & API keys.
+* Telegram bot connection file: `/telegram/bot.js`
+* Add WebSocket for live status updates (optional).
+
+---
+
+### ⚠️ 11. Important Notes
+
+* Website is for **verification and trading UI only**, not for illegal or automated transfers.
+* Ownership changes must be handled **manually by admin**.
+* Store logs of every verification request for transparency.
+
+---
+
+### 🧩 Example Command for AI on Replit
+
+You can paste this directly in Replit’s AI (Ghostwriter / AI agent):
+
+> “Create a complete website (frontend + backend + MongoDB) according to the following prompt…”
+> *[Then paste the above entire prompt]*
+
+---
+
+Agar tum chaho to mai tumhe **complete folder structure + code skeleton (React + Express)** likh du ready for Replit upload — chaho to mai bana du abhi?
+Bilkul ✅ — niche **complete, production-level prompt** diya gaya hai jo tum **Replit pe website banwane ke liye** use kar sakte ho (AI code generator ya developer ko dene ke liye). Ye prompt explain karta hai **frontend + backend + Telegram verification + admin panel** sab kuch professional structure me.
+
+---
+
+## 🧠 Full Prompt (for Replit / AI Code Generator)
+
+> Build a **professional Telegram Group Selling website** with user login, verification system, admin panel, and order tracking.
+
+---
+
+### 🔧 1. Tech Stack
+
+* **Frontend:** React + Tailwind CSS (clean modern UI)
+* **Backend:** Node.js (Express.js)
+* **Database:** MongoDB (user, group, order, transaction data)
+* **Authentication:** Telegram login (via Telegram API)
+* **Hosting:** Render (backend) + Replit (dev environment)
+* **Telegram API integration:** For verifying group ownership and age.
+
+---
+
+### 💻 2. User Flow
+
+#### **Login / Register Page**
+
+* User can **login with Telegram username and password** (simulate with local login or Telegram OAuth).
+* If user forgets password → redirects to **Support page** (manual recovery by admin).
+* On successful login → redirect to Dashboard.
+
+#### **Dashboard**
+
+Main buttons:
+
+* **Sell Your Group** (main action)
+* **Earnings**
+* **Support / Profile**
+
+---
+
+### 🏷️ 3. Sell Your Group Section
+
+When user clicks **Sell Your Group**, show:
+
+* Option:
+
+  * “Single Group”
+  * “Folder of Groups”
+
+When selected → user enters:
+
+* **Group Link**
+* **Group Description**
+* **Number of Members**
+* **Optional Screenshot Upload**
+* Then click **Submit for Verification**
+
+#### ⚙️ Verification Process:
+
+* Website uses **connected Telegram account (admin’s bot or API)** to:
+
+  1. Check **group creation date / age**
+  2. Confirm **bot is admin** or user is real owner
+  3. If verified → Status = “✅ Verified — Waiting for Ownership”
+  4. If failed → Status = “❌ Verification Failed” with reason
+
+#### After ownership transfer:
+
+* Automatically move to **“Waiting for Review”**
+* Admin can then approve or reject manually.
+
+---
+
+### 📊 4. Task List / Price List Section
+
+Below verification section:
+
+* **Task List**: shows steps (Submitted → Verified → Ownership → Review → Paid)
+* **Price List Table:**
+
+  | Group Age | Member Range | Price (USD) |
+  | --------- | ------------ | ----------- |
+  | 2020–2021 | 0–1000       | $3          |
+  | 2022–2023 | 0–1000       | $2          |
+  | etc.      |              |             |
+
+---
+
+### 🧑‍💼 5. Admin Panel Features
+
+**Login (admin only)**
+Dashboard includes:
+
+* List of all sellers and groups
+* Columns:
+
+  * Username
+  * Group Link
+  * Status (Pending, Verified, Ownership, Review, Paid, Rejected)
+  * Earning
+  * Withdrawal Requests
+  * Actions: ✅ Approve / ❌ Reject
+  * Text box: “Reason for rejection”
+
+**Admin Functions:**
+
+* Approve or reject groups
+* Update group prices
+* Manual user support (password reset)
+* View statistics: total groups, total users, total earnings, pending reviews
+* Manual payout control
+
+---
+
+### 📱 6. Telegram Integration Details
+
+**Bot Connected via API Token**
+
+* Bot verifies group info using Telegram API:
+
+  * `getChat()` to fetch creation date (via message history)
+  * `getChatAdministrators()` to confirm ownership
+  * Send confirmation messages in group/chat like:
+    “Verification in progress…” → “Verified successfully ✅”
+
+---
+
+### 💰 7. Earnings & Withdrawal System
+
+Each verified group → adds balance to user wallet.
+User can:
+
+* View total earnings
+* Request withdrawal (admin must manually approve)
+* Withdraw methods: manual (UPI, crypto, etc.)
+
+---
+
+### 🧱 8. Database Collections
+
+**Users:**
+
+```js
+{ username, telegramId, password, balance, groups: [], withdrawals: [] }
+```
+
+**Groups:**
+
+```js
+{ link, ownerId, members, creationDate, status, price, reason }
+```
+
+**Transactions:**
+
+```js
+{ userId, groupId, amount, status, date }
+```
+
+---
+
+### 🎨 9. Design Instructions
+
+* Dashboard in dark/light theme toggle
+* Card layout for group listings
+* Progress bar for verification stages
+* Notification popup for each update (success/error)
+* Navbar: Home | Sell Group | My Earnings | Support
+
+---
+
+### 🧰 10. Developer Instructions
+
+* Use **Express Router** for API endpoints:
+
+  * `/api/auth`
+  * `/api/groups`
+  * `/api/admin`
+  * `/api/telegram`
+* Secure routes with JWT tokens.
+* Use `.env` file for tokens & API keys.
+* Telegram bot connection file: `/telegram/bot.js`
+* Add WebSocket for live status updates (optional).
+
+---
+
+### ⚠️ 11. Important Notes
+
+* Website is for **verification and trading UI only**, not for illegal or automated transfers.
+* Ownership changes must be handled **manually by admin**.
+* Store logs of every verification request for transparency.
+
+---
