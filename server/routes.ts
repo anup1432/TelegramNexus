@@ -293,6 +293,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin users management routes
+  app.get("/api/admin/users", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Remove passwords from response
+      const usersWithoutPasswords = users.map(({ password, ...user }) => user);
+      res.json(usersWithoutPasswords);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch users" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isAdmin, balance } = req.body;
+
+      if (isAdmin !== undefined) {
+        await storage.updateUserAdmin(id, isAdmin);
+      }
+
+      if (balance !== undefined) {
+        const user = await storage.getUser(id);
+        if (user) {
+          const currentBalance = parseFloat(user.balance);
+          const newBalance = parseFloat(balance);
+          const difference = newBalance - currentBalance;
+          await storage.updateUserBalance(id, difference);
+        }
+      }
+
+      const updatedUser = await storage.getUser(id);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to update user" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Prevent deleting own account
+      if (req.user!.id === id) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+
+      await storage.deleteUser(id);
+      res.json({ message: "User deleted successfully" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to delete user" });
+    }
+  });
+
+  // Admin price config routes
+  app.get("/api/admin/prices", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const prices = await storage.getAllPriceConfigs();
+      res.json(prices);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch prices" });
+    }
+  });
+
+  app.patch("/api/admin/prices/:id", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { price } = req.body;
+
+      if (!price) {
+        return res.status(400).json({ message: "Price is required" });
+      }
+
+      await storage.updatePriceConfig(id, price);
+      const updatedPrice = await storage.getPriceConfig(id);
+      
+      res.json(updatedPrice);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to update price" });
+    }
+  });
+
+  // Admin settings routes
+  app.get("/api/admin/settings", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getAllAdminSettings();
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch settings" });
+    }
+  });
+
+  app.post("/api/admin/settings", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { settingKey, settingValue, description } = req.body;
+
+      if (!settingKey || !settingValue) {
+        return res.status(400).json({ message: "Setting key and value are required" });
+      }
+
+      const setting = await storage.setAdminSetting({
+        settingKey,
+        settingValue,
+        description,
+      });
+
+      res.json(setting);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to save setting" });
+    }
+  });
+
+  app.patch("/api/admin/settings/:key", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { key } = req.params;
+      const { settingValue } = req.body;
+
+      if (!settingValue) {
+        return res.status(400).json({ message: "Setting value is required" });
+      }
+
+      await storage.updateAdminSetting(key, settingValue);
+      const updatedSetting = await storage.getAdminSetting(key);
+      
+      res.json(updatedSetting);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to update setting" });
+    }
+  });
+
+  app.delete("/api/admin/settings/:key", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { key } = req.params;
+      await storage.deleteAdminSetting(key);
+      res.json({ message: "Setting deleted successfully" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to delete setting" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

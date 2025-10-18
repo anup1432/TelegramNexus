@@ -57,6 +57,24 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Admin settings table - for platform configuration
+export const adminSettings = pgTable("admin_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  settingKey: text("setting_key").notNull().unique(),
+  settingValue: text("setting_value").notNull(),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Price configuration table - for dynamic pricing
+export const priceConfig = pgTable("price_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupAge: text("group_age").notNull(),
+  memberRange: text("member_range").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -111,6 +129,33 @@ export type InsertWithdrawal = z.infer<typeof insertWithdrawalSchema>;
 export type Withdrawal = typeof withdrawals.$inferSelect;
 
 export type Transaction = typeof transactions.$inferSelect;
+
+export type AdminSetting = typeof adminSettings.$inferSelect;
+export type InsertAdminSetting = typeof adminSettings.$inferInsert;
+
+export type PriceConfig = typeof priceConfig.$inferSelect;
+export type InsertPriceConfig = typeof priceConfig.$inferInsert;
+
+// Insert schemas for admin
+export const insertAdminSettingSchema = createInsertSchema(adminSettings).pick({
+  settingKey: true,
+  settingValue: true,
+  description: true,
+}).extend({
+  settingKey: z.string().min(1, "Setting key is required"),
+  settingValue: z.string().min(1, "Setting value is required"),
+  description: z.string().optional(),
+});
+
+export const insertPriceConfigSchema = createInsertSchema(priceConfig).pick({
+  groupAge: true,
+  memberRange: true,
+  price: true,
+}).extend({
+  groupAge: z.string().min(1, "Group age is required"),
+  memberRange: z.string().min(1, "Member range is required"),
+  price: z.string().refine((val) => parseFloat(val) >= 0, "Price must be 0 or greater"),
+});
 
 // Price list configuration (can be moved to a separate config file if needed)
 export const priceList = [

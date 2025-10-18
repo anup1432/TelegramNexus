@@ -6,6 +6,10 @@ import {
   type Withdrawal,
   type InsertWithdrawal,
   type Transaction,
+  type AdminSetting,
+  type InsertAdminSetting,
+  type PriceConfig,
+  type InsertPriceConfig,
   calculateGroupPrice
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -16,6 +20,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserBalance(userId: string, amount: number): Promise<void>;
+  updateUserAdmin(userId: string, isAdmin: number): Promise<void>;
+  deleteUser(userId: string): Promise<void>;
   getAllUsers(): Promise<User[]>;
 
   // Group methods
@@ -36,6 +42,21 @@ export interface IStorage {
   // Transaction methods
   createTransaction(transaction: Omit<Transaction, "id" | "createdAt">): Promise<Transaction>;
   getTransactionsByUserId(userId: string): Promise<Transaction[]>;
+
+  // Admin settings methods
+  getAdminSetting(key: string): Promise<AdminSetting | undefined>;
+  getAllAdminSettings(): Promise<AdminSetting[]>;
+  setAdminSetting(setting: InsertAdminSetting): Promise<AdminSetting>;
+  updateAdminSetting(key: string, value: string): Promise<void>;
+  deleteAdminSetting(key: string): Promise<void>;
+
+  // Price config methods
+  getAllPriceConfigs(): Promise<PriceConfig[]>;
+  getPriceConfig(id: string): Promise<PriceConfig | undefined>;
+  createPriceConfig(config: InsertPriceConfig): Promise<PriceConfig>;
+  updatePriceConfig(id: string, price: string): Promise<void>;
+  deletePriceConfig(id: string): Promise<void>;
+  initializeDefaultPrices(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -43,12 +64,16 @@ export class MemStorage implements IStorage {
   private groups: Map<string, Group>;
   private withdrawals: Map<string, Withdrawal>;
   private transactions: Map<string, Transaction>;
+  private adminSettings: Map<string, AdminSetting>;
+  private priceConfigs: Map<string, PriceConfig>;
 
   constructor() {
     this.users = new Map();
     this.groups = new Map();
     this.withdrawals = new Map();
     this.transactions = new Map();
+    this.adminSettings = new Map();
+    this.priceConfigs = new Map();
 
     // Create default admin user (password: admin123)
     const adminId = randomUUID();
@@ -61,6 +86,9 @@ export class MemStorage implements IStorage {
       isAdmin: 1,
       createdAt: new Date(),
     });
+
+    // Initialize default prices
+    this.initializeDefaultPrices();
   }
 
   // User methods
@@ -102,12 +130,48 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values());
   }
 
+  async updateUserAdmin(userId: string, isAdmin: number): Promise<void> {
+    const user = this.users.get(userId);
+    if (!user) throw new Error("User not found");
+    
+    user.isAdmin = isAdmin;
+    this.users.set(userId, user);
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    this.users.delete(userId);
+  }
+
   // Group methods
   async createGroup(ownerId: string, insertGroup: InsertGroup): Promise<Group> {
     const id = randomUUID();
-    const price = insertGroup.groupAge 
-      ? calculateGroupPrice(insertGroup.groupAge, insertGroup.members)
-      : 0;
+    
+    // Default groupAge if not provided (treat as newest/cheapest category)
+    const groupAge = insertGroup.groupAge || "2024+";
+    
+    // Calculate price from dynamic price configuration with fallback to static prices
+    const priceConfigs = await this.getAllPriceConfigs();
+    const ranges = [
+      { max: 1000, range: "0-1000" },
+      { max: 5000, range: "1001-5000" },
+      { max: 10000, range: "5001-10000" },
+      { max: Infinity, range: "10001+" },
+    ];
+    
+    const memberRange = ranges.find(r => insertGroup.members <= r.max)?.range || "10001+";
+    
+    // Try to get price from dynamic configuration
+    const priceConfig = priceConfigs.find(
+      p => p.groupAge === groupAge && p.memberRange === memberRange
+    );
+    
+    let price = 0;
+    if (priceConfig) {
+      price = parseFloat(priceConfig.price);
+    } else {
+      // Fallback to static pricing using the helper function
+      price = calculateGroupPrice(groupAge, insertGroup.members);
+    }
     
     const group: Group = {
       ...insertGroup,
@@ -278,6 +342,110 @@ export class MemStorage implements IStorage {
     return Array.from(this.transactions.values()).filter(
       (transaction) => transaction.userId === userId,
     ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  // Admin settings methods
+  async getAdminSetting(key: string): Promise<AdminSetting | undefined> {
+    return this.adminSettings.get(key);
+  }
+
+  async getAllAdminSettings(): Promise<AdminSetting[]> {
+    return Array.from(this.adminSettings.values());
+  }
+
+  async setAdminSetting(setting: InsertAdminSetting): Promise<AdminSetting> {
+    const existing = this.adminSettings.get(setting.settingKey);
+    
+    if (existing) {
+      existing.settingValue = setting.settingValue;
+      existing.description = setting.description || null;
+      existing.updatedAt = new Date();
+      this.adminSettings.set(setting.settingKey, existing);
+      return existing;
+    }
+
+    const id = randomUUID();
+    const newSetting: AdminSetting = {
+      id,
+      settingKey: setting.settingKey,
+      settingValue: setting.settingValue,
+      description: setting.description || null,
+      updatedAt: new Date(),
+    };
+    this.adminSettings.set(setting.settingKey, newSetting);
+    return newSetting;
+  }
+
+  async updateAdminSetting(key: string, value: string): Promise<void> {
+    const setting = this.adminSettings.get(key);
+    if (!setting) throw new Error("Setting not found");
+    
+    setting.settingValue = value;
+    setting.updatedAt = new Date();
+    this.adminSettings.set(key, setting);
+  }
+
+  async deleteAdminSetting(key: string): Promise<void> {
+    this.adminSettings.delete(key);
+  }
+
+  // Price config methods
+  async getAllPriceConfigs(): Promise<PriceConfig[]> {
+    return Array.from(this.priceConfigs.values()).sort(
+      (a, b) => a.groupAge.localeCompare(b.groupAge)
+    );
+  }
+
+  async getPriceConfig(id: string): Promise<PriceConfig | undefined> {
+    return this.priceConfigs.get(id);
+  }
+
+  async createPriceConfig(config: InsertPriceConfig): Promise<PriceConfig> {
+    const id = randomUUID();
+    const priceValue = String(config.price);
+    const newConfig: PriceConfig = {
+      id,
+      groupAge: config.groupAge,
+      memberRange: config.memberRange,
+      price: priceValue,
+      updatedAt: new Date(),
+    };
+    this.priceConfigs.set(id, newConfig);
+    return newConfig;
+  }
+
+  async updatePriceConfig(id: string, price: string): Promise<void> {
+    const config = this.priceConfigs.get(id);
+    if (!config) throw new Error("Price config not found");
+    
+    config.price = price;
+    config.updatedAt = new Date();
+    this.priceConfigs.set(id, config);
+  }
+
+  async deletePriceConfig(id: string): Promise<void> {
+    this.priceConfigs.delete(id);
+  }
+
+  async initializeDefaultPrices(): Promise<void> {
+    const defaultPrices = [
+      { groupAge: "2020-2021", memberRange: "0-1000", price: "3.00" },
+      { groupAge: "2020-2021", memberRange: "1001-5000", price: "5.00" },
+      { groupAge: "2020-2021", memberRange: "5001-10000", price: "8.00" },
+      { groupAge: "2020-2021", memberRange: "10001+", price: "12.00" },
+      { groupAge: "2022-2023", memberRange: "0-1000", price: "2.00" },
+      { groupAge: "2022-2023", memberRange: "1001-5000", price: "3.50" },
+      { groupAge: "2022-2023", memberRange: "5001-10000", price: "5.00" },
+      { groupAge: "2022-2023", memberRange: "10001+", price: "7.00" },
+      { groupAge: "2024+", memberRange: "0-1000", price: "1.00" },
+      { groupAge: "2024+", memberRange: "1001-5000", price: "2.00" },
+      { groupAge: "2024+", memberRange: "5001-10000", price: "3.00" },
+      { groupAge: "2024+", memberRange: "10001+", price: "4.00" },
+    ];
+
+    for (const price of defaultPrices) {
+      await this.createPriceConfig(price);
+    }
   }
 }
 
