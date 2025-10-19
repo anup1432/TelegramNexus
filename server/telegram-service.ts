@@ -113,40 +113,123 @@ export class TelegramService {
     try {
       const logId = await this.createJoinLog(groupLink, groupId, "joining");
 
+      const groupUsername = this.extractUsername(groupLink);
       const inviteHash = this.extractInviteHash(groupLink);
-      if (!inviteHash) {
+
+      if (!groupUsername && !inviteHash) {
         await this.updateJoinLog(logId, "failed", "Invalid group link format");
         return {
           success: false,
-          message: "Invalid Telegram group link",
+          message: "Invalid Telegram group link. Use format: t.me/username or t.me/+invitehash",
         };
       }
 
       let chatEntity;
-      try {
-        const updates = await this.client.invoke(
-          new Api.messages.ImportChatInvite({
-            hash: inviteHash,
-          })
-        );
+      
+      if (groupUsername) {
+        try {
+          chatEntity = await this.client.getEntity(groupUsername);
+        } catch (error: any) {
+          let errorMsg = "Failed to find group";
+          if (error.message.includes("USERNAME_INVALID")) {
+            errorMsg = "Invalid username or group not found";
+          } else if (error.message.includes("USERNAME_NOT_OCCUPIED")) {
+            errorMsg = "Username does not exist";
+          }
+          await this.updateJoinLog(logId, "failed", errorMsg);
+          return { success: false, message: errorMsg };
+        }
 
-        if ("chats" in updates && updates.chats && updates.chats.length > 0) {
-          chatEntity = updates.chats[0];
-        }
-        
-        if (chatEntity) {
+        try {
+          await this.client.invoke(
+            new Api.channels.JoinChannel({
+              channel: chatEntity,
+            })
+          );
+          
           await this.updateJoinLog(logId, "joined", undefined, new Date());
+        } catch (error: any) {
+          if (error.message.includes("USER_ALREADY_PARTICIPANT")) {
+            await this.updateJoinLog(logId, "joined", undefined, new Date());
+          } else if (error.message.includes("CHANNELS_TOO_MUCH")) {
+            await this.updateJoinLog(logId, "failed", "Too many channels joined");
+            return { success: false, message: "Too many channels joined. Leave some channels first." };
+          } else if (error.message.includes("CHANNEL_PRIVATE")) {
+            await this.updateJoinLog(logId, "failed", "Channel is private");
+            return { success: false, message: "This channel is private and requires an invitation" };
+          } else if (error.message.includes("INVITE_REQUEST_SENT")) {
+            await this.updateJoinLog(logId, "failed", "Join request sent, awaiting approval");
+            return { success: false, message: "Join request sent. Awaiting admin approval." };
+          } else if (error.message.includes("FLOOD_WAIT")) {
+            const waitMatch = error.message.match(/FLOOD_WAIT_(\d+)/);
+            const waitTime = waitMatch ? waitMatch[1] : "unknown";
+            await this.updateJoinLog(logId, "failed", `Rate limited. Wait ${waitTime} seconds`);
+            return { success: false, message: `Rate limited by Telegram. Please wait ${waitTime} seconds.` };
+          } else {
+            await this.updateJoinLog(logId, "failed", error.message);
+            return { success: false, message: `Failed to join: ${error.message}` };
+          }
         }
-      } catch (error: any) {
-        if (error.message.includes("INVITE_HASH_EXPIRED")) {
-          await this.updateJoinLog(logId, "failed", "Invite link has expired");
-          return { success: false, message: "Invite link has expired" };
-        } else if (error.message.includes("USER_ALREADY_PARTICIPANT")) {
-          chatEntity = await this.client.getEntity(inviteHash);
-          await this.updateJoinLog(logId, "joined", undefined, new Date());
-        } else {
-          throw error;
+      } else if (inviteHash) {
+        try {
+          const updates = await this.client.invoke(
+            new Api.messages.ImportChatInvite({
+              hash: inviteHash,
+            })
+          );
+
+          if ("chats" in updates && updates.chats && updates.chats.length > 0) {
+            chatEntity = updates.chats[0];
+            await this.updateJoinLog(logId, "joined", undefined, new Date());
+          } else {
+            await this.updateJoinLog(logId, "failed", "No chat data received from invite");
+            return { success: false, message: "Failed to get chat information from invite link" };
+          }
+        } catch (error: any) {
+          if (error.message.includes("INVITE_HASH_EXPIRED")) {
+            await this.updateJoinLog(logId, "failed", "Invite link expired");
+            return { success: false, message: "Invite link has expired" };
+          } else if (error.message.includes("INVITE_HASH_INVALID")) {
+            await this.updateJoinLog(logId, "failed", "Invalid invite link");
+            return { success: false, message: "Invalid invite link" };
+          } else if (error.message.includes("USER_ALREADY_PARTICIPANT")) {
+            try {
+              const checkInvite = await this.client.invoke(
+                new Api.messages.CheckChatInvite({ hash: inviteHash })
+              );
+              if ("chat" in checkInvite) {
+                chatEntity = checkInvite.chat;
+              }
+            } catch {
+              try {
+                chatEntity = await this.client.getEntity(inviteHash);
+              } catch (getEntityError: any) {
+                await this.updateJoinLog(logId, "failed", "Failed to get chat entity after join");
+                return { success: false, message: "Already a member but failed to get chat information" };
+              }
+            }
+            await this.updateJoinLog(logId, "joined", undefined, new Date());
+          } else if (error.message.includes("CHANNELS_TOO_MUCH")) {
+            await this.updateJoinLog(logId, "failed", "Too many channels joined");
+            return { success: false, message: "Too many channels joined. Leave some channels first." };
+          } else if (error.message.includes("FLOOD_WAIT")) {
+            const waitMatch = error.message.match(/FLOOD_WAIT_(\d+)/);
+            const waitTime = waitMatch ? waitMatch[1] : "unknown";
+            await this.updateJoinLog(logId, "failed", `Rate limited. Wait ${waitTime} seconds`);
+            return { success: false, message: `Rate limited by Telegram. Please wait ${waitTime} seconds.` };
+          } else {
+            await this.updateJoinLog(logId, "failed", error.message);
+            return { success: false, message: `Failed to join via invite: ${error.message}` };
+          }
         }
+      }
+
+      if (!chatEntity) {
+        await this.updateJoinLog(logId, "failed", "Failed to get chat entity");
+        return {
+          success: false,
+          message: "Failed to get chat entity after joining",
+        };
       }
 
       await this.updateJoinLog(logId, "verified", undefined, undefined, new Date());
@@ -155,12 +238,12 @@ export class TelegramService {
       await this.updateJoinLog(logId, "message_sent", undefined, undefined, undefined, new Date());
 
       const me = await this.client.getMe();
-      const username = me.username || `${me.firstName || ""} ${me.lastName || ""}`.trim() || "Unknown";
+      const accountUsername = me.username || `${me.firstName || ""} ${me.lastName || ""}`.trim() || "Unknown";
 
       return {
         success: true,
         message: "Successfully joined group, verified membership, and sent confirmation message 'A'",
-        username,
+        username: accountUsername,
       };
     } catch (error: any) {
       console.error("Error in joinGroupAndVerify:", error);
@@ -171,7 +254,25 @@ export class TelegramService {
     }
   }
 
-  private extractInviteHash(groupLink: string): string | null {
+  private extractUsername(groupLink: string): string | undefined {
+    const patterns = [
+      /t\.me\/([A-Za-z0-9_]+)$/,
+      /telegram\.me\/([A-Za-z0-9_]+)$/,
+      /t\.me\/([A-Za-z0-9_]+)\?/,
+      /telegram\.me\/([A-Za-z0-9_]+)\?/,
+    ];
+
+    for (const pattern of patterns) {
+      const match = groupLink.match(pattern);
+      if (match && match[1] && !match[1].includes('+') && !match[1].includes('joinchat')) {
+        return match[1];
+      }
+    }
+
+    return undefined;
+  }
+
+  private extractInviteHash(groupLink: string): string | undefined {
     const patterns = [
       /t\.me\/\+([A-Za-z0-9_-]+)/,
       /t\.me\/joinchat\/([A-Za-z0-9_-]+)/,
@@ -186,7 +287,7 @@ export class TelegramService {
       }
     }
 
-    return null;
+    return undefined;
   }
 
   private async createJoinLog(

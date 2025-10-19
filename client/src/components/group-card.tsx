@@ -1,7 +1,10 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "./status-badge";
-import { Users, Calendar, ExternalLink } from "lucide-react";
+import { Users, Calendar, ExternalLink, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { Group } from "@shared/schema";
 
 interface GroupCardProps {
@@ -10,10 +13,45 @@ interface GroupCardProps {
 }
 
 export function GroupCard({ group, onViewDetails }: GroupCardProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const createdDate = new Date(group.submittedAt).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
+  });
+
+  const autoJoinMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/telegram/join", {
+        groupLink: group.link,
+        groupId: group.id,
+      });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/groups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/groups/stats"] });
+      if (data.success) {
+        toast({
+          title: "Success!",
+          description: data.message,
+        });
+      } else {
+        toast({
+          title: "Failed",
+          description: data.message,
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to join group",
+        variant: "destructive",
+      });
+    },
   });
 
   return (
@@ -65,27 +103,44 @@ export function GroupCard({ group, onViewDetails }: GroupCardProps) {
       </CardContent>
 
       <CardFooter className="pt-3 border-t flex items-center justify-between">
-        {group.price ? (
-          <div>
-            <p className="text-xs text-muted-foreground mb-0.5">Estimated Value</p>
-            <p className="text-xl font-bold text-primary" data-testid={`text-price-${group.id}`}>
-              ${parseFloat(group.price).toFixed(2)}
-            </p>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Price pending</p>
-        )}
+        <div className="flex-1">
+          {group.price ? (
+            <div>
+              <p className="text-xs text-muted-foreground mb-0.5">Estimated Value</p>
+              <p className="text-xl font-bold text-primary" data-testid={`text-price-${group.id}`}>
+                ${parseFloat(group.price).toFixed(2)}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Price pending</p>
+          )}
+        </div>
 
-        {onViewDetails && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onViewDetails(group)}
-            data-testid={`button-view-${group.id}`}
-          >
-            View Details
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {group.status === "submitted" && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => autoJoinMutation.mutate()}
+              disabled={autoJoinMutation.isPending}
+              className="gap-1"
+              data-testid={`button-auto-join-${group.id}`}
+            >
+              <MessageSquare className="h-3 w-3" />
+              {autoJoinMutation.isPending ? "Joining..." : "Auto-Join"}
+            </Button>
+          )}
+          {onViewDetails && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onViewDetails(group)}
+              data-testid={`button-view-${group.id}`}
+            >
+              View Details
+            </Button>
+          )}
+        </div>
       </CardFooter>
 
       {group.status === "rejected" && group.rejectionReason && (

@@ -2,8 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { StatsCard } from "@/components/stats-card";
 import { GroupCard } from "@/components/group-card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "wouter";
-import { Package, DollarSign, Clock, CheckCircle2 } from "lucide-react";
+import { Package, DollarSign, Clock, CheckCircle2, MessageSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Group } from "@shared/schema";
 
@@ -23,6 +24,10 @@ export default function Dashboard() {
     queryKey: ["/api/groups/stats"],
   });
 
+  const { data: telegramUsername } = useQuery<{ username: string }>({
+    queryKey: ["/api/telegram/username"],
+  });
+
   const recentGroups = groups?.slice(0, 3) || [];
 
   return (
@@ -33,6 +38,26 @@ export default function Dashboard() {
           Welcome back! Here's an overview of your group listings
         </p>
       </div>
+
+      {telegramUsername && telegramUsername.username !== "Not configured" && (
+        <Card className="border-primary/20 bg-primary/5" data-testid="card-transfer-info">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="rounded-lg bg-primary/10 p-3">
+                <MessageSquare className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">
+                  Ownership Transfer Target Account
+                </p>
+                <p className="text-lg font-semibold" data-testid="text-target-username">
+                  @{telegramUsername.username}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
