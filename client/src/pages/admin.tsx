@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/status-badge";
 import { StatsCard } from "@/components/stats-card";
+import { TelegramConfig } from "@/components/telegram-config";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Users, 
@@ -22,7 +23,8 @@ import {
   Trash2,
   Settings as SettingsIcon,
   Tag,
-  Shield
+  Shield,
+  MessageSquare
 } from "lucide-react";
 import {
   Table,
@@ -398,11 +400,15 @@ export default function Admin() {
       </div>
 
       <Tabs defaultValue="groups" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="groups" data-testid="tab-groups">Groups</TabsTrigger>
           <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
           <TabsTrigger value="withdrawals" data-testid="tab-withdrawals">Withdrawals</TabsTrigger>
           <TabsTrigger value="prices" data-testid="tab-prices">Pricing</TabsTrigger>
+          <TabsTrigger value="telegram" data-testid="tab-telegram">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Telegram
+          </TabsTrigger>
           <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -753,6 +759,11 @@ export default function Admin() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Telegram Tab */}
+        <TabsContent value="telegram">
+          <TelegramConfig />
         </TabsContent>
 
         {/* Settings Tab */}
