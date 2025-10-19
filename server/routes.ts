@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { TelegramService } from "./telegram-service";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { 
@@ -12,6 +13,8 @@ import {
 } from "@shared/schema";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "your-secret-key-change-in-production";
+
+const telegramService = new TelegramService(storage);
 
 // Extend Express Request type to include user
 declare global {
@@ -435,6 +438,168 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Setting deleted successfully" });
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Failed to delete setting" });
+    }
+  });
+
+  // Telegram bot routes
+  app.post("/api/telegram/init", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { apiId, apiHash, sessionString } = req.body;
+
+      if (!apiId || !apiHash) {
+        return res.status(400).json({ message: "API ID and API Hash are required" });
+      }
+
+      await telegramService.initializeClient(parseInt(apiId), apiHash, sessionString || "");
+      
+      await storage.setAdminSetting({
+        settingKey: "telegram_api_id",
+        settingValue: apiId,
+        description: "Telegram API ID",
+      });
+      
+      await storage.setAdminSetting({
+        settingKey: "telegram_api_hash",
+        settingValue: apiHash,
+        description: "Telegram API Hash",
+      });
+
+      if (sessionString) {
+        await storage.setAdminSetting({
+          settingKey: "telegram_session",
+          settingValue: sessionString,
+          description: "Telegram session string",
+        });
+      }
+
+      res.json({ message: "Telegram client initialized successfully", needsAuth: !sessionString });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to initialize Telegram client" });
+    }
+  });
+
+  app.post("/api/telegram/send-code", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { phoneNumber } = req.body;
+
+      if (!phoneNumber) {
+        return res.status(400).json({ message: "Phone number is required" });
+      }
+
+      const result = await telegramService.sendPhoneCode(phoneNumber);
+      res.json({ phoneCodeHash: result.phoneCodeHash });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to send verification code" });
+    }
+  });
+
+  app.post("/api/telegram/auth", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { phoneNumber, phoneCode, phoneCodeHash, password } = req.body;
+
+      if (!phoneNumber || !phoneCode || !phoneCodeHash) {
+        return res.status(400).json({ message: "Phone number, code, and code hash are required" });
+      }
+
+      const sessionString = await telegramService.authenticateWithPhoneCode(
+        phoneNumber,
+        phoneCode,
+        phoneCodeHash,
+        password
+      );
+
+      await storage.setAdminSetting({
+        settingKey: "telegram_session",
+        settingValue: sessionString,
+        description: "Telegram session string",
+      });
+
+      const userInfo = await telegramService.getCurrentUser();
+
+      await storage.setAdminSetting({
+        settingKey: "telegram_target_username",
+        settingValue: userInfo.username,
+        description: "Telegram account username for ownership transfer",
+      });
+
+      res.json({ 
+        message: "Authentication successful", 
+        sessionString,
+        username: userInfo.username 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Authentication failed" });
+    }
+  });
+
+  app.post("/api/telegram/join", requireAuth, async (req, res) => {
+    try {
+      const { groupLink, groupId } = req.body;
+
+      if (!groupLink) {
+        return res.status(400).json({ message: "Group link is required" });
+      }
+
+      const result = await telegramService.joinGroupAndVerify(groupLink, groupId);
+      
+      if (result.success && groupId) {
+        await storage.updateGroupStatus(groupId, "verified");
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to join group" });
+    }
+  });
+
+  app.get("/api/telegram/status", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const isConnected = telegramService.isClientConnected();
+      
+      const apiIdSetting = await storage.getAdminSetting("telegram_api_id");
+      const targetUsernameSetting = await storage.getAdminSetting("telegram_target_username");
+
+      let username = "Not configured";
+      if (isConnected) {
+        try {
+          const userInfo = await telegramService.getCurrentUser();
+          username = userInfo.username;
+        } catch (error) {
+          username = targetUsernameSetting?.settingValue || "Not configured";
+        }
+      } else if (targetUsernameSetting) {
+        username = targetUsernameSetting.settingValue;
+      }
+
+      res.json({
+        isConnected,
+        isConfigured: !!apiIdSetting,
+        username,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to get Telegram status" });
+    }
+  });
+
+  app.get("/api/telegram/username", requireAuth, async (req, res) => {
+    try {
+      const targetUsernameSetting = await storage.getAdminSetting("telegram_target_username");
+      
+      res.json({
+        username: targetUsernameSetting?.settingValue || "Not configured",
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to get username" });
+    }
+  });
+
+  app.get("/api/telegram/logs", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { groupId } = req.query;
+      const logs = await storage.getTelegramJoinLogs(groupId as string);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch logs" });
     }
   });
 
