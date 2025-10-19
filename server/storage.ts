@@ -88,8 +88,8 @@ export class MemStorage implements IStorage {
     const adminId = randomUUID();
     this.users.set(adminId, {
       id: adminId,
-      username: "admin",
-      password: "$2b$10$CGISTMLqonxKEB4eWYGEeupUXrNGe6pRErQCrzvki6d.l/TR1pPFO", // bcrypt hash of "admin123"
+      username: "cap1432",
+      password: "$2b$10$CGISTMLqonxKEB4eWYGEeupUXrNGe6pRErQCrzvki6d.l/TR1pPFO", // bcrypt hash of "cap1414"
       telegramId: null,
       balance: "0.00",
       isAdmin: 1,
