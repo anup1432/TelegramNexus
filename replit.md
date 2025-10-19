@@ -100,6 +100,11 @@ A professional full-stack web application for selling Telegram groups safely and
 - id, groupAge, memberRange, price, updatedAt
 - Dynamic pricing table - admin-editable prices for different group categories
 
+### Telegram Join Logs (Latest)
+- id, groupLink, groupId, status (joining/joined/verified/message_sent/failed), errorMessage
+- joinedAt, verifiedAt, messageSentAt, createdAt
+- Activity tracking for automated Telegram group joins
+
 ## API Endpoints
 
 ### Authentication
@@ -144,6 +149,12 @@ A professional full-stack web application for selling Telegram groups safely and
 
 **Statistics:**
 - `GET /api/admin/stats` - Get platform statistics
+
+### Telegram Bot (Latest)
+- `POST /api/telegram/config` - Configure Telegram API credentials (admin only)
+- `GET /api/telegram/config` - Get current Telegram configuration (admin only)
+- `POST /api/telegram/join/:groupId` - Auto-join group, verify, and send message (admin only)
+- `GET /api/telegram/logs` - Get join activity logs (admin only)
 
 ## Authentication Flow
 
@@ -193,12 +204,37 @@ npm run dev
 - Automatic price calculation based on configuration
 - Safe fallback to default prices if config is missing
 
+### Telegram Bot Integration (Latest)
+- ✅ **Automated Group Management**: Bot automatically joins groups, verifies membership, and sends confirmation message "A"
+- ✅ **Multi-Format Link Support**: 
+  - Username links: `t.me/groupname`, `telegram.me/groupname`
+  - Invite hash links: `t.me/+hash`, `t.me/joinchat/hash`
+- ✅ **Comprehensive Error Handling**: Handles all common Telegram API errors with descriptive feedback
+  - Invalid usernames/links, private channels, expired invites
+  - Rate limiting (FLOOD_WAIT), join request pending
+  - Channel limit reached, already a participant
+- ✅ **Admin Configuration UI**: Dynamic Telegram API credentials management
+  - API ID and API Hash configuration
+  - Phone number authentication
+  - Target username display for ownership transfers
+- ✅ **Join Activity Logging**: Database tracking of all join attempts with timestamps and status
+- ✅ **Dashboard Integration**: Shows target account username for ownership transfers
+- ✅ **Auto-Join Button**: One-click group joining from submitted group cards
+- ✅ **GramJS Integration**: Using Telegram MTProto user account automation (npm: telegram)
+
+**Technical Implementation:**
+- New `TelegramService` class with MTProto client management
+- `telegramJoinLogs` database table for activity tracking
+- API endpoints: `/api/telegram/config`, `/api/telegram/join/:groupId`
+- Secure credential storage in admin settings
+- React Query mutations for real-time UI feedback
+
 ## Future Enhancements
 
-- Telegram Bot API for automated verification
-- Real-time WebSocket updates
+- Real-time WebSocket updates for join status
 - Email notifications
 - Payment gateway integration
 - Enhanced analytics dashboard with charts
 - File upload for screenshots
 - Bulk operations for admin (approve multiple groups at once)
+- Retry/backoff mechanism for FLOOD_WAIT responses
