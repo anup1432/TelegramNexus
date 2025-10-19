@@ -39,9 +39,8 @@ export default function SellGroup() {
       type: "single",
       link: "",
       description: "",
-      members: 0,
+      members: undefined,
       groupAge: "",
-      screenshotUrl: "",
     },
   });
 
@@ -71,12 +70,11 @@ export default function SellGroup() {
     createGroupMutation.mutate(data);
   };
 
-  const watchMembers = form.watch("members");
   const watchGroupAge = form.watch("groupAge");
 
   const handleCalculatePrice = () => {
-    if (watchMembers && watchGroupAge) {
-      const price = calculateGroupPrice(watchGroupAge, watchMembers);
+    if (watchGroupAge) {
+      const price = calculateGroupPrice(watchGroupAge);
       setEstimatedPrice(price);
     }
   };
@@ -171,66 +169,29 @@ export default function SellGroup() {
                     )}
                   />
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="members"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Number of Members</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="1000"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                              data-testid="input-members"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="groupAge"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Group Age</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-group-age">
-                                <SelectValue placeholder="Select age range" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="2020-2021">2020-2021</SelectItem>
-                              <SelectItem value="2022-2023">2022-2023</SelectItem>
-                              <SelectItem value="2024+">2024+</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
                   <FormField
                     control={form.control}
-                    name="screenshotUrl"
+                    name="groupAge"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Screenshot URL (Optional)</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="https://example.com/screenshot.png"
-                            {...field}
-                            data-testid="input-screenshot"
-                          />
-                        </FormControl>
+                        <FormLabel>Group Year</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-group-age">
+                              <SelectValue placeholder="Select year" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="2020">2020</SelectItem>
+                            <SelectItem value="2021">2021</SelectItem>
+                            <SelectItem value="2022">2022</SelectItem>
+                            <SelectItem value="2023">2023</SelectItem>
+                            <SelectItem value="2024">2024</SelectItem>
+                            <SelectItem value="2025">2025</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormDescription>
-                          Provide a screenshot of your group stats
+                          Select the year your group was created
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -256,7 +217,7 @@ export default function SellGroup() {
                       type="button"
                       variant="outline"
                       onClick={handleCalculatePrice}
-                      disabled={!watchMembers || !watchGroupAge}
+                      disabled={!watchGroupAge}
                       data-testid="button-calculate-price"
                     >
                       Calculate Price
@@ -281,7 +242,7 @@ export default function SellGroup() {
                   ${estimatedPrice.toFixed(2)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Based on {watchMembers.toLocaleString()} members and {watchGroupAge} age range
+                  Based on year {watchGroupAge}
                 </p>
               </CardContent>
             </Card>

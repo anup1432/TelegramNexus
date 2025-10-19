@@ -458,7 +458,7 @@ export default function Admin() {
                           <TableCell>
                             <Badge variant="outline">{group.type}</Badge>
                           </TableCell>
-                          <TableCell>{group.members.toLocaleString()}</TableCell>
+                          <TableCell>{group.members?.toLocaleString() || "—"}</TableCell>
                           <TableCell className="text-sm">{group.groupAge || "—"}</TableCell>
                           <TableCell className="font-semibold text-primary">
                             ${group.price ? parseFloat(group.price).toFixed(2) : "—"}
@@ -704,7 +704,7 @@ export default function Admin() {
                 Price Configuration
               </CardTitle>
               <CardDescription>
-                Edit pricing based on group age and member count
+                Edit pricing based on group age (year)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -712,8 +712,7 @@ export default function Admin() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Group Age</TableHead>
-                      <TableHead>Member Range</TableHead>
+                      <TableHead>Year</TableHead>
                       <TableHead>Price (USD)</TableHead>
                       <TableHead>Last Updated</TableHead>
                       <TableHead>Actions</TableHead>
@@ -723,8 +722,7 @@ export default function Admin() {
                     {prices && prices.length > 0 ? (
                       prices.map((price) => (
                         <TableRow key={price.id} data-testid={`row-price-${price.id}`}>
-                          <TableCell className="font-medium">{price.groupAge}</TableCell>
-                          <TableCell>{price.memberRange}</TableCell>
+                          <TableCell className="font-medium">{price.year}</TableCell>
                           <TableCell className="font-semibold text-primary text-lg">
                             ${parseFloat(price.price).toFixed(2)}
                           </TableCell>
@@ -749,7 +747,7 @@ export default function Admin() {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                           No price configurations found
                         </TableCell>
                       </TableRow>
@@ -1008,7 +1006,7 @@ export default function Admin() {
           <DialogHeader>
             <DialogTitle>Edit Price</DialogTitle>
             <DialogDescription>
-              Update price for {editingPrice?.groupAge} ({editingPrice?.memberRange})
+              Update price for year {editingPrice?.year}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

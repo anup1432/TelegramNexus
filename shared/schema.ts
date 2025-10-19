@@ -21,9 +21,8 @@ export const groups = pgTable("groups", {
   type: text("type").notNull(), // "single" or "folder"
   link: text("link").notNull(),
   description: text("description"),
-  members: integer("members").notNull(),
-  groupAge: text("group_age"), // e.g., "2020-2021", "2022-2023"
-  screenshotUrl: text("screenshot_url"),
+  members: integer("members"), // Optional now
+  groupAge: text("group_age"), // Year: "2020", "2021", "2022", etc.
   status: text("status").notNull().default("submitted"), // submitted, verified, ownership, review, paid, rejected
   price: decimal("price", { precision: 10, scale: 2 }),
   rejectionReason: text("rejection_reason"),
@@ -66,11 +65,10 @@ export const adminSettings = pgTable("admin_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// Price configuration table - for dynamic pricing
+// Price configuration table - for dynamic pricing (year-based)
 export const priceConfig = pgTable("price_config", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  groupAge: text("group_age").notNull(),
-  memberRange: text("member_range").notNull(),
+  year: text("year").notNull().unique(), // "2020", "2021", "2022", etc.
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -105,14 +103,12 @@ export const insertGroupSchema = createInsertSchema(groups).pick({
   description: true,
   members: true,
   groupAge: true,
-  screenshotUrl: true,
 }).extend({
   type: z.enum(["single", "folder"]),
   link: z.string().url("Please enter a valid URL"),
   description: z.string().optional(),
-  members: z.number().int().positive("Members must be a positive number"),
+  members: z.number().int().positive("Members must be a positive number").optional(),
   groupAge: z.string().optional(),
-  screenshotUrl: z.string().optional(),
 });
 
 export const insertWithdrawalSchema = createInsertSchema(withdrawals).pick({
@@ -164,42 +160,25 @@ export const insertAdminSettingSchema = createInsertSchema(adminSettings).pick({
 });
 
 export const insertPriceConfigSchema = createInsertSchema(priceConfig).pick({
-  groupAge: true,
-  memberRange: true,
+  year: true,
   price: true,
 }).extend({
-  groupAge: z.string().min(1, "Group age is required"),
-  memberRange: z.string().min(1, "Member range is required"),
+  year: z.string().min(4, "Year is required (e.g., 2020)"),
   price: z.string().refine((val) => parseFloat(val) >= 0, "Price must be 0 or greater"),
 });
 
-// Price list configuration (can be moved to a separate config file if needed)
+// Default price list configuration (year-based, simple)
 export const priceList = [
-  { groupAge: "2020-2021", memberRange: "0-1000", price: 3 },
-  { groupAge: "2020-2021", memberRange: "1001-5000", price: 5 },
-  { groupAge: "2020-2021", memberRange: "5001-10000", price: 8 },
-  { groupAge: "2020-2021", memberRange: "10001+", price: 12 },
-  { groupAge: "2022-2023", memberRange: "0-1000", price: 2 },
-  { groupAge: "2022-2023", memberRange: "1001-5000", price: 3.5 },
-  { groupAge: "2022-2023", memberRange: "5001-10000", price: 5 },
-  { groupAge: "2022-2023", memberRange: "10001+", price: 7 },
-  { groupAge: "2024+", memberRange: "0-1000", price: 1 },
-  { groupAge: "2024+", memberRange: "1001-5000", price: 2 },
-  { groupAge: "2024+", memberRange: "5001-10000", price: 3 },
-  { groupAge: "2024+", memberRange: "10001+", price: 4 },
+  { year: "2020", price: 12 },
+  { year: "2021", price: 10 },
+  { year: "2022", price: 7 },
+  { year: "2023", price: 5 },
+  { year: "2024", price: 3 },
+  { year: "2025", price: 1 },
 ];
 
-// Helper function to calculate price based on group age and members
-export function calculateGroupPrice(groupAge: string, members: number): number {
-  const ranges = [
-    { max: 1000, range: "0-1000" },
-    { max: 5000, range: "1001-5000" },
-    { max: 10000, range: "5001-10000" },
-    { max: Infinity, range: "10001+" },
-  ];
-
-  const memberRange = ranges.find(r => members <= r.max)?.range || "10001+";
-  const priceEntry = priceList.find(p => p.groupAge === groupAge && p.memberRange === memberRange);
-  
+// Helper function to calculate price based on year only
+export function calculateGroupPrice(year: string): number {
+  const priceEntry = priceList.find(p => p.year === year);
   return priceEntry?.price || 0;
 }

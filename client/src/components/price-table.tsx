@@ -10,20 +10,12 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function PriceTable() {
-  const groupedPrices = priceList.reduce((acc, item) => {
-    if (!acc[item.groupAge]) {
-      acc[item.groupAge] = [];
-    }
-    acc[item.groupAge].push(item);
-    return acc;
-  }, {} as Record<string, typeof priceList>);
-
   return (
     <Card data-testid="card-price-table">
       <CardHeader>
         <CardTitle>Price List</CardTitle>
         <CardDescription>
-          Pricing based on group age and member count
+          Pricing based on group year
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -31,31 +23,20 @@ export function PriceTable() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[120px]">Group Age</TableHead>
-                <TableHead className="min-w-[140px]">Member Range</TableHead>
+                <TableHead className="min-w-[120px]">Year</TableHead>
                 <TableHead className="text-right">Price (USD)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Object.entries(groupedPrices).map(([age, prices]) => (
-                prices.map((item, idx) => (
-                  <TableRow key={`${age}-${item.memberRange}`}>
-                    {idx === 0 && (
-                      <TableCell
-                        rowSpan={prices.length}
-                        className="font-medium align-top"
-                      >
-                        {age}
-                      </TableCell>
-                    )}
-                    <TableCell className="text-muted-foreground">
-                      {item.memberRange}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-primary">
-                      ${item.price.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))
+              {priceList.map((item) => (
+                <TableRow key={item.year}>
+                  <TableCell className="font-medium">
+                    {item.year}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold text-primary">
+                    ${item.price.toFixed(2)}
+                  </TableCell>
+                </TableRow>
               ))}
             </TableBody>
           </Table>

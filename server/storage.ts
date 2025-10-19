@@ -155,31 +155,21 @@ export class MemStorage implements IStorage {
   async createGroup(ownerId: string, insertGroup: InsertGroup): Promise<Group> {
     const id = randomUUID();
     
-    // Default groupAge if not provided (treat as newest/cheapest category)
-    const groupAge = insertGroup.groupAge || "2024+";
+    // Default year if not provided (treat as newest/cheapest category)
+    const year = insertGroup.groupAge || "2025";
     
     // Calculate price from dynamic price configuration with fallback to static prices
     const priceConfigs = await this.getAllPriceConfigs();
-    const ranges = [
-      { max: 1000, range: "0-1000" },
-      { max: 5000, range: "1001-5000" },
-      { max: 10000, range: "5001-10000" },
-      { max: Infinity, range: "10001+" },
-    ];
-    
-    const memberRange = ranges.find(r => insertGroup.members <= r.max)?.range || "10001+";
     
     // Try to get price from dynamic configuration
-    const priceConfig = priceConfigs.find(
-      p => p.groupAge === groupAge && p.memberRange === memberRange
-    );
+    const priceConfig = priceConfigs.find(p => p.year === year);
     
     let price = 0;
     if (priceConfig) {
       price = parseFloat(priceConfig.price);
     } else {
       // Fallback to static pricing using the helper function
-      price = calculateGroupPrice(groupAge, insertGroup.members);
+      price = calculateGroupPrice(year);
     }
     
     const group: Group = {
@@ -187,8 +177,8 @@ export class MemStorage implements IStorage {
       id,
       ownerId,
       description: insertGroup.description || null,
+      members: insertGroup.members || null,
       groupAge: insertGroup.groupAge || null,
-      screenshotUrl: insertGroup.screenshotUrl || null,
       status: "submitted",
       price: price.toFixed(2),
       rejectionReason: null,
@@ -401,7 +391,7 @@ export class MemStorage implements IStorage {
   // Price config methods
   async getAllPriceConfigs(): Promise<PriceConfig[]> {
     return Array.from(this.priceConfigs.values()).sort(
-      (a, b) => a.groupAge.localeCompare(b.groupAge)
+      (a, b) => a.year.localeCompare(b.year)
     );
   }
 
@@ -414,8 +404,7 @@ export class MemStorage implements IStorage {
     const priceValue = String(config.price);
     const newConfig: PriceConfig = {
       id,
-      groupAge: config.groupAge,
-      memberRange: config.memberRange,
+      year: config.year,
       price: priceValue,
       updatedAt: new Date(),
     };
@@ -438,18 +427,12 @@ export class MemStorage implements IStorage {
 
   async initializeDefaultPrices(): Promise<void> {
     const defaultPrices = [
-      { groupAge: "2020-2021", memberRange: "0-1000", price: "3.00" },
-      { groupAge: "2020-2021", memberRange: "1001-5000", price: "5.00" },
-      { groupAge: "2020-2021", memberRange: "5001-10000", price: "8.00" },
-      { groupAge: "2020-2021", memberRange: "10001+", price: "12.00" },
-      { groupAge: "2022-2023", memberRange: "0-1000", price: "2.00" },
-      { groupAge: "2022-2023", memberRange: "1001-5000", price: "3.50" },
-      { groupAge: "2022-2023", memberRange: "5001-10000", price: "5.00" },
-      { groupAge: "2022-2023", memberRange: "10001+", price: "7.00" },
-      { groupAge: "2024+", memberRange: "0-1000", price: "1.00" },
-      { groupAge: "2024+", memberRange: "1001-5000", price: "2.00" },
-      { groupAge: "2024+", memberRange: "5001-10000", price: "3.00" },
-      { groupAge: "2024+", memberRange: "10001+", price: "4.00" },
+      { year: "2020", price: "12.00" },
+      { year: "2021", price: "10.00" },
+      { year: "2022", price: "7.00" },
+      { year: "2023", price: "5.00" },
+      { year: "2024", price: "3.00" },
+      { year: "2025", price: "1.00" },
     ];
 
     for (const price of defaultPrices) {
