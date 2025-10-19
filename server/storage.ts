@@ -10,6 +10,8 @@ import {
   type InsertAdminSetting,
   type PriceConfig,
   type InsertPriceConfig,
+  type TelegramJoinLog,
+  type InsertTelegramJoinLog,
   calculateGroupPrice
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -57,6 +59,11 @@ export interface IStorage {
   updatePriceConfig(id: string, price: string): Promise<void>;
   deletePriceConfig(id: string): Promise<void>;
   initializeDefaultPrices(): Promise<void>;
+
+  // Telegram join log methods
+  createTelegramJoinLog(log: Omit<TelegramJoinLog, "id" | "createdAt">): Promise<TelegramJoinLog>;
+  updateTelegramJoinLog(id: string, updates: Partial<TelegramJoinLog>): Promise<void>;
+  getTelegramJoinLogs(groupId?: string): Promise<TelegramJoinLog[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -66,6 +73,7 @@ export class MemStorage implements IStorage {
   private transactions: Map<string, Transaction>;
   private adminSettings: Map<string, AdminSetting>;
   private priceConfigs: Map<string, PriceConfig>;
+  private telegramJoinLogs: Map<string, TelegramJoinLog>;
 
   constructor() {
     this.users = new Map();
@@ -74,6 +82,7 @@ export class MemStorage implements IStorage {
     this.transactions = new Map();
     this.adminSettings = new Map();
     this.priceConfigs = new Map();
+    this.telegramJoinLogs = new Map();
 
     // Create default admin user (password: admin123)
     const adminId = randomUUID();
@@ -446,6 +455,36 @@ export class MemStorage implements IStorage {
     for (const price of defaultPrices) {
       await this.createPriceConfig(price);
     }
+  }
+
+  // Telegram join log methods
+  async createTelegramJoinLog(log: Omit<TelegramJoinLog, "id" | "createdAt">): Promise<TelegramJoinLog> {
+    const id = randomUUID();
+    const newLog: TelegramJoinLog = {
+      ...log,
+      id,
+      createdAt: new Date(),
+    };
+    this.telegramJoinLogs.set(id, newLog);
+    return newLog;
+  }
+
+  async updateTelegramJoinLog(id: string, updates: Partial<TelegramJoinLog>): Promise<void> {
+    const log = this.telegramJoinLogs.get(id);
+    if (!log) throw new Error("Telegram join log not found");
+    
+    const updatedLog = { ...log, ...updates };
+    this.telegramJoinLogs.set(id, updatedLog);
+  }
+
+  async getTelegramJoinLogs(groupId?: string): Promise<TelegramJoinLog[]> {
+    let logs = Array.from(this.telegramJoinLogs.values());
+    
+    if (groupId) {
+      logs = logs.filter(log => log.groupId === groupId);
+    }
+    
+    return logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 }
 

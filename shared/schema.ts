@@ -75,6 +75,19 @@ export const priceConfig = pgTable("price_config", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Telegram bot join logs - tracks auto-join activities
+export const telegramJoinLogs = pgTable("telegram_join_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  groupId: varchar("group_id").references(() => groups.id),
+  groupLink: text("group_link").notNull(),
+  joinStatus: text("join_status").notNull(), // "joining", "joined", "verified", "message_sent", "failed"
+  errorMessage: text("error_message"),
+  joinedAt: timestamp("joined_at"),
+  verifiedAt: timestamp("verified_at"),
+  messageSentAt: timestamp("message_sent_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -135,6 +148,9 @@ export type InsertAdminSetting = typeof adminSettings.$inferInsert;
 
 export type PriceConfig = typeof priceConfig.$inferSelect;
 export type InsertPriceConfig = typeof priceConfig.$inferInsert;
+
+export type TelegramJoinLog = typeof telegramJoinLogs.$inferSelect;
+export type InsertTelegramJoinLog = typeof telegramJoinLogs.$inferInsert;
 
 // Insert schemas for admin
 export const insertAdminSettingSchema = createInsertSchema(adminSettings).pick({
