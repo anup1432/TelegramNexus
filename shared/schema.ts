@@ -169,12 +169,12 @@ export const insertPriceConfigSchema = createInsertSchema(priceConfig).pick({
 
 // Default price list configuration (year-based, simple)
 export const priceList = [
-  { year: "2020", price: 12 },
-  { year: "2021", price: 10 },
-  { year: "2022", price: 7 },
-  { year: "2023", price: 5 },
-  { year: "2024", price: 3 },
-  { year: "2025", price: 1 },
+  { year: "2020", price: 12.6 },
+  { year: "2021", price: 12.6 },
+  { year: "2022", price: 12.6 },
+  { year: "2023", price: 8.5 },
+  { year: "2024 jan-mar", price: 6.5 },
+  { year: "2024 apr-may", price: 5 },
 ];
 
 // Helper function to calculate price based on year only
