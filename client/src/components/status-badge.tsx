@@ -8,14 +8,14 @@ import {
   XCircle 
 } from "lucide-react";
 
-type Status = "submitted" | "verified" | "ownership" | "review" | "paid" | "rejected";
+type Status = "submitted" | "verified" | "ownership" | "review" | "paid" | "rejected" | "pending" | "approved";
 
 interface StatusBadgeProps {
-  status: Status;
+  status: Status | string;
   className?: string;
 }
 
-const statusConfig: Record<Status, { 
+const statusConfig: Record<string, { 
   label: string; 
   variant: "default" | "secondary" | "destructive" | "outline";
   icon: React.ReactNode;
@@ -57,10 +57,36 @@ const statusConfig: Record<Status, {
     icon: <XCircle className="w-3 h-3" />,
     className: "bg-destructive/10 text-destructive border-destructive/20",
   },
+  pending: {
+    label: "Pending",
+    variant: "secondary",
+    icon: <Clock className="w-3 h-3" />,
+    className: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
+  },
+  approved: {
+    label: "Approved",
+    variant: "outline",
+    icon: <CheckCircle2 className="w-3 h-3" />,
+    className: "bg-chart-2/10 text-chart-2 border-chart-2/20",
+  },
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const config = statusConfig[status];
+
+  // Fallback for unknown status
+  if (!config) {
+    return (
+      <Badge 
+        variant="outline" 
+        className={`bg-muted text-muted-foreground ${className || ""} flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium uppercase tracking-wide`}
+        data-testid={`badge-status-${status}`}
+      >
+        <Clock className="w-3 h-3" />
+        <span>{status}</span>
+      </Badge>
+    );
+  }
 
   return (
     <Badge 

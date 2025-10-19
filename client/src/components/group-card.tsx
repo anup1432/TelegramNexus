@@ -85,10 +85,12 @@ export function GroupCard({ group, onViewDetails }: GroupCardProps) {
         )}
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <Users className="w-4 h-4" />
-            <span>{group.members.toLocaleString()} members</span>
-          </div>
+          {group.members && (
+            <div className="flex items-center gap-1.5">
+              <Users className="w-4 h-4" />
+              <span>{group.members.toLocaleString()} members</span>
+            </div>
+          )}
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4" />
             <span>{createdDate}</span>
