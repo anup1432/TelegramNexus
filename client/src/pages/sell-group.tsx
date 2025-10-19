@@ -18,7 +18,9 @@ import { PriceTable } from "@/components/price-table";
 import { GroupCard } from "@/components/group-card";
 import { Package, Loader2 } from "lucide-react";
 
-const formSchema = insertGroupSchema.extend({
+const formSchema = insertGroupSchema.omit({
+  members: true,
+}).extend({
   groupAge: z.string().min(1, "Please select group age"),
 });
 
@@ -39,7 +41,6 @@ export default function SellGroup() {
       type: "single",
       link: "",
       description: "",
-      members: undefined,
       groupAge: "",
     },
   });

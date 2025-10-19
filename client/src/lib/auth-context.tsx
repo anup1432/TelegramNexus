@@ -31,6 +31,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthToken(data.token);
       queryClient.setQueryData(["/api/auth/me"], data.user);
     },
+    onError: (error: any) => {
+      console.error("Login error:", error);
+      throw error;
+    },
   });
 
   const registerMutation = useMutation({
@@ -42,6 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthToken(data.token);
       queryClient.setQueryData(["/api/auth/me"], data.user);
     },
+    onError: (error: any) => {
+      console.error("Register error:", error);
+      throw error;
+    },
   });
 
   const logoutMutation = useMutation({
@@ -49,6 +57,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/auth/logout", {});
     },
     onSuccess: () => {
+      removeAuthToken();
+      queryClient.setQueryData(["/api/auth/me"], null);
+      queryClient.clear();
+    },
+    onError: (error: any) => {
+      console.error("Logout error:", error);
       removeAuthToken();
       queryClient.setQueryData(["/api/auth/me"], null);
       queryClient.clear();

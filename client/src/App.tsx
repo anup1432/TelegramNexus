@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 import Login from "@/pages/login";
 import Register from "@/pages/register";
@@ -74,17 +75,19 @@ function AuthenticatedApp() {
             <ThemeToggle />
           </header>
           <main className="flex-1 overflow-y-auto p-8">
-            <Switch>
-              <Route path="/" component={() => <Redirect to="/dashboard" />} />
-              <Route path="/login" component={() => <Redirect to="/dashboard" />} />
-              <Route path="/register" component={() => <Redirect to="/dashboard" />} />
-              <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
-              <Route path="/sell-group" component={() => <ProtectedRoute component={SellGroup} />} />
-              <Route path="/earnings" component={() => <ProtectedRoute component={Earnings} />} />
-              <Route path="/support" component={() => <ProtectedRoute component={Support} />} />
-              <Route path="/admin" component={() => <ProtectedRoute component={Admin} adminOnly />} />
-              <Route component={NotFound} />
-            </Switch>
+            <ErrorBoundary>
+              <Switch>
+                <Route path="/" component={() => <Redirect to="/dashboard" />} />
+                <Route path="/login" component={() => <Redirect to="/dashboard" />} />
+                <Route path="/register" component={() => <Redirect to="/dashboard" />} />
+                <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
+                <Route path="/sell-group" component={() => <ProtectedRoute component={SellGroup} />} />
+                <Route path="/earnings" component={() => <ProtectedRoute component={Earnings} />} />
+                <Route path="/support" component={() => <ProtectedRoute component={Support} />} />
+                <Route path="/admin" component={() => <ProtectedRoute component={Admin} adminOnly />} />
+                <Route component={NotFound} />
+              </Switch>
+            </ErrorBoundary>
           </main>
         </div>
       </div>
